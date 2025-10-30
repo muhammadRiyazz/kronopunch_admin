@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "397690114481",
+    "project_id": "kronopunch",
+    "storage_bucket": "kronopunch.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397690114481:android:97d6c8224e3dd1de182d90",
+        "android_client_info": {
+          "package_name": "com.krono.kronopunch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmLkrT9I3z7h9s-NvxWZFObCEEgbMX9fU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
