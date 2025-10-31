@@ -128,7 +128,7 @@ class _EmployeePageState extends State<EmployeePage> {
         'avatar': imageUrl ?? 'https://i.pravatar.cc/150?img=${_employees.length + 1}',
         'status': 'Present',
       };
-
+ 
       await FirebaseEmployeeService.addEmployee(employeeData);
 
       _showSuccessSnackBar('Employee added successfully!');
@@ -1464,15 +1464,16 @@ class _EmployeePageState extends State<EmployeePage> {
 
     return Padding(
       padding: EdgeInsets.only(
-        top: 20,
+        top: 0,
         right: isMobile ? 16 : 30,
         left: isMobile ? 16 : 30,
-        bottom: 20,
+        bottom: 0,
       ),
       child: Stack(
         children: [
           ListView(
-            children: [
+            children: [              const SizedBox(height: 20),
+
               _buildHeader(context),
               const SizedBox(height: 20),
               _buildSummaryCards(width),
@@ -1490,7 +1491,8 @@ class _EmployeePageState extends State<EmployeePage> {
               else if (isMobile) 
                 _buildEmployeeListMobile(context)
               else
-                _buildEmployeeTable(context, width),
+                _buildEmployeeTable(context, width),              const SizedBox(height: 20),
+
             ],
           ),
           

@@ -1,5 +1,6 @@
 // lib/pages/dashboard/layout/main_layout.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kronopunch/pages/dashboard/layout/side_menu.dart';
 import 'package:kronopunch/pages/dashboard/layout/mobile_drawer.dart';
 import 'package:kronopunch/pages/dashboard/sections/attendance_page.dart';
@@ -9,6 +10,8 @@ import 'package:kronopunch/pages/dashboard/sections/employee_page.dart';
 import 'package:kronopunch/pages/dashboard/sections/leave_request_page.dart';
 import 'package:kronopunch/pages/dashboard/sections/report_page.dart';
 import 'package:kronopunch/pages/dashboard/sections/settings_page.dart';
+import 'package:kronopunch/services/firebase_service.dart';
+import 'package:kronopunch/services/cache_service.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -21,6 +24,8 @@ class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
   bool _isMenuExpanded = true;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  Map<String, String?> _userData = {};
+  bool _loadingUserData = true;
 
   final List<Widget> _pages = [
     const DashboardPage(),
@@ -62,9 +67,39 @@ class _MainLayoutState extends State<MainLayout> {
     Icons.settings_rounded,
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final data = await CacheService.getLoginData();
+      final user = FirebaseAuth.instance.currentUser;
+      
+      setState(() {
+        _userData = data;
+        // If cache is empty but user is logged in, use Firebase data
+        if (_userData.isEmpty && user != null) {
+          _userData = {
+            'email': user.email,
+            'name': user.displayName ?? user.email?.split('@').first ?? 'User',
+            'companyCode': 'Company',
+            'role': 'Admin',
+          };
+        }
+        _loadingUserData = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingUserData = false;
+      });
+    }
+  }
+
   void _onMenuSelect(int index) {
     if (index == _selectedIndex) {
-      // If already selected, close drawer on mobile
       if (MediaQuery.of(context).size.width < 600) {
         _scaffoldKey.currentState?.closeDrawer();
       } 
@@ -76,11 +111,9 @@ class _MainLayoutState extends State<MainLayout> {
 
     setState(() {
       _selectedIndex = index;
-      // Close drawer on mobile after selection
       if (MediaQuery.of(context).size.width < 600) {
         _scaffoldKey.currentState?.closeDrawer();
       }
-      // Close sidebar on tablet after selection
       else if (MediaQuery.of(context).size.width < 768) {
         _isMenuExpanded = false;
       }
@@ -90,10 +123,41 @@ class _MainLayoutState extends State<MainLayout> {
   void _toggleMenu() {
     if (MediaQuery.of(context).size.width < 600) {
       _scaffoldKey.currentState?.openDrawer();
-    } 
-    // else {
-    //   setState(() => _isMenuExpanded = !_isMenuExpanded);
-    // }
+    }
+  }
+
+  Future<void> _logout() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await FirebaseService.logout();
+                if (!mounted) return;
+                Navigator.pushNamedAndRemoveUntil(
+                  context, 
+                  '/auth', 
+                  (route) => false
+                );
+              },
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -108,38 +172,40 @@ class _MainLayoutState extends State<MainLayout> {
       drawer: isMobile ? MobileDrawer(
         selectedIndex: _selectedIndex,
         onItemSelected: _onMenuSelect,
+        userData: _userData,
+        onLogout: _logout,
+        loading: _loadingUserData,
       ) : null,
       body: SafeArea(
         child: Row(
           children: [
-
-
-
-
             // Side Menu (persistent on desktop & tablet; disabled on mobile)
             if (!isMobile && !isTablet) 
               SideMenu(
                 selectedIndex: _selectedIndex,
                 onItemSelected: _onMenuSelect,
                 isExpanded: true,
+                userData: _userData,
+                onLogout: _logout,
+                loading: _loadingUserData,
               ),
             
-
-            // // Tablet sidebar (togglable)
-            if (isTablet )
+            // Tablet sidebar (togglable)
+            if (isTablet)
               SideMenu(
                 selectedIndex: _selectedIndex,
                 onItemSelected: _onMenuSelect,
                 isExpanded: false,
+                userData: _userData,
+                onLogout: _logout,
+                loading: _loadingUserData,
               ),
-
 
             // Main Content Area
             Expanded(
-
               child: Column(
                 children: [
-                   // Header
+                  // Header
                   _buildHeader(isMobile, isTablet),
                   // Page content with animated transition
                   Expanded(
@@ -168,19 +234,6 @@ class _MainLayoutState extends State<MainLayout> {
           ],
         ),
       ),
-
-      // // Floating Action Button for tablet menu
-      // floatingActionButton: isTablet
-      //     ? FloatingActionButton(
-      //         onPressed: _toggleMenu,
-      //         backgroundColor: const Color(0xFF1A237E),
-      //         child: Icon(
-      //           _isMenuExpanded ? Icons.close : Icons.menu,
-      //           color: Colors.white,
-      //         ),
-      //         mini: true,
-      //       )
-      //     : null,
     );
   }
 
@@ -210,7 +263,7 @@ class _MainLayoutState extends State<MainLayout> {
           // Title Section
           Row(
             children: [
-              if (isMobile ) ...[
+              if (isMobile) ...[
                 IconButton(
                   onPressed: _toggleMenu,
                   icon: Icon(
@@ -251,7 +304,7 @@ class _MainLayoutState extends State<MainLayout> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (!isMobile ) ...[
+                    if (!isMobile) ...[
                       const SizedBox(height: 2),
                       Text(
                         _getSubtitle(_selectedIndex),
@@ -292,11 +345,7 @@ class _MainLayoutState extends State<MainLayout> {
       children: [
         _buildNotificationButton(isMobile: true),
         const SizedBox(width: 12),
-        const CircleAvatar(
-          radius: 18,
-          backgroundColor: Color(0xFF1A237E),
-          child: Icon(Icons.person_rounded, color: Colors.white, size: 18),
-        ),
+        _buildUserProfile(isMobile: true),
       ],
     );
   }
@@ -334,20 +383,60 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildUserProfile() {
-    return Row(
-      children: [
-        const CircleAvatar(
-          radius: 20,
-          backgroundColor: Color(0xFF1A237E),
-          child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
-        ),
-       
-        // Icon(
-        //   Icons.arrow_drop_down_rounded,
-        //   color: Colors.grey.shade600,
-        // ),
-      ],
+  Widget _buildUserProfile({bool isMobile = false}) {
+    return GestureDetector(
+      onTap: _logout,
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: isMobile ? 18 : 20,
+            backgroundColor: const Color(0xFF1A237E),
+            child: _loadingUserData
+                ? const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  )
+                : Text(
+                    _userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isMobile ? 14 : 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          if (!isMobile) ...[
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _userData['name'] ?? 'Loading...',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A237E),
+                  ),
+                ),
+                Text(
+                  _userData['role']?.toUpperCase() ?? 'USER',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.logout_rounded,
+              color: Colors.grey,
+              size: 18,
+            ),
+          ],
+        ],
+      ),
     );
   }
 

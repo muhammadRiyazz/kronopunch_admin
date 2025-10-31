@@ -86,13 +86,13 @@ class AuthHomePage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 40),
-                              SizedBox(height: 40,
+                              SizedBox(height: 50,
                                 width: double.infinity,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.indigo.shade700,
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
+                                        vertical: 0),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -112,13 +112,13 @@ class AuthHomePage extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
-                              SizedBox(height: 40,
+                              const SizedBox(height: 14),
+                              SizedBox(height: 50,
                                 width: double.infinity,
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
+                                        vertical: 0),
                                     side: BorderSide(
                                         color: Colors.indigo.shade700,
                                         width: 1.5),

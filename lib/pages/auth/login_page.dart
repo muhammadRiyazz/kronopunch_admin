@@ -16,34 +16,36 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
   bool _obscure = true;
 
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+ // In your login_page.dart, update the _login method:
+Future<void> _login() async {
+  if (!_formKey.currentState!.validate()) return;
+  setState(() => _loading = true);
 
-    try {
-      final company = await FirebaseService.loginCompany(
-        email: _email.text.trim(),
-        password: _password.text.trim(),
+  try {
+    final company = await FirebaseService.loginCompany(
+      email: _email.text.trim(),
+      password: _password.text.trim(),
+    );
+
+    if (company != null) {
+      // Cache is already saved in FirebaseService.loginCompany
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => MainLayout()),
       );
-
-      if (company != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => MainLayout()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Company not found')),
-        );
-      }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid credentials')),
+        const SnackBar(content: Text('Company not found')),
       );
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Invalid credentials: $e')),
+    );
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {

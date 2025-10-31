@@ -4,11 +4,17 @@ import 'package:flutter/material.dart';
 class MobileDrawer extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemSelected;
+  final Map<String, String?> userData;
+  final VoidCallback onLogout;
+  final bool loading;
 
   const MobileDrawer({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
+    required this.userData,
+    required this.onLogout,
+    this.loading = false,
   });
 
   @override
@@ -22,6 +28,9 @@ class MobileDrawer extends StatelessWidget {
           // Logo Section
           _buildLogoSection(),
           const SizedBox(height: 12),
+
+          // User Info Section
+          _buildUserInfoSection(),
 
           // Menu Items
           Expanded(
@@ -38,7 +47,7 @@ class MobileDrawer extends StatelessWidget {
             ),
           ),
 
-          // Footer
+          // Footer with Logout
           _buildFooter(),
         ],
       ),
@@ -90,6 +99,116 @@ class MobileDrawer extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserInfoSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // User Name & Role
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.white,
+                child: loading
+                    ? const CircularProgressIndicator(
+                        color: Color(0xFF1A237E),
+                        strokeWidth: 2,
+                      )
+                    : Text(
+                        userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                        style: const TextStyle(
+                          color: Color(0xFF1A237E),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userData['name'] ?? 'Loading...',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userData['role']?.toUpperCase() ?? 'USER',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Company Info
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.business_rounded,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userData['companyCode'] ?? 'Company',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        userData['email'] ?? 'No email',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -199,6 +318,45 @@ class MobileDrawer extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Logout Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onLogout,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Logout',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
