@@ -240,17 +240,17 @@ class _EmployeePageState extends State<EmployeePage> {
       _selectedImageFile = null;
       
       // Fill form with employee data
-      _nameController.text = employee['name'];
-      _phoneController.text = employee['contact'];
-      _emailController.text = employee['email'];
-      _joiningDateController.text = employee['joiningDate'];
-      _placeController.text = employee['place'];
-      _positionController.text = employee['position'];
-      _employeeIdController.text = employee['employeeId'];
+      _nameController.text = employee['name'] ?? '';
+      _phoneController.text = employee['contact'] ?? '';
+      _emailController.text = employee['email'] ?? '';
+      _joiningDateController.text = employee['joiningDate'] ?? '';
+      _placeController.text = employee['place'] ?? '';
+      _positionController.text = employee['position'] ?? '';
+      _employeeIdController.text = employee['customEmployeeId'] ?? employee['documentId'] ?? '';
       _passwordController.text = employee['password'] ?? '';
-      _selectedGender = employee['gender'];
-      _selectedDepartment = employee['department'];
-      _selectedRole = employee['role'];
+      _selectedGender = employee['gender'] ?? 'Male';
+      _selectedDepartment = employee['department'] ?? 'Sales';
+      _selectedRole = employee['role'] ?? 'Employee';
       _profileImageUrl = employee['avatar'];
     });
   }
@@ -329,11 +329,17 @@ class _EmployeePageState extends State<EmployeePage> {
     
     final query = _searchController.text.toLowerCase();
     return _employees.where((employee) {
-      return employee['name'].toLowerCase().contains(query) ||
-          employee['department'].toLowerCase().contains(query) ||
-          employee['position'].toLowerCase().contains(query) ||
-          employee['employeeId'].toLowerCase().contains(query) ||
-          employee['email'].toLowerCase().contains(query);
+      final name = (employee['name'] ?? '').toString().toLowerCase();
+      final department = (employee['department'] ?? '').toString().toLowerCase();
+      final position = (employee['position'] ?? '').toString().toLowerCase();
+      final employeeId = ((employee['customEmployeeId'] ?? employee['documentId'] ?? '')).toString().toLowerCase();
+      final email = (employee['email'] ?? '').toString().toLowerCase();
+      
+      return name.contains(query) ||
+          department.contains(query) ||
+          position.contains(query) ||
+          employeeId.contains(query) ||
+          email.contains(query);
     }).toList();
   }
 
@@ -1142,15 +1148,20 @@ class _EmployeePageState extends State<EmployeePage> {
               DataColumn(label: Text('Actions')),
             ],
             rows: filteredEmployees.map((e) {
-              final statusColor = _getStatusColor(e['status']);
+              final statusColor = _getStatusColor(e['status'] ?? 'Present');
               return DataRow(
                 cells: [
                   DataCell(
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundImage: NetworkImage(e['avatar']), 
-                          radius: 20
+                          backgroundImage: (e['avatar'] != null && e['avatar'].toString().isNotEmpty) 
+                              ? NetworkImage(e['avatar'].toString()) 
+                              : null,
+                          radius: 20,
+                          child: (e['avatar'] == null || e['avatar'].toString().isEmpty)
+                              ? Icon(Icons.person, color: Colors.grey.shade400)
+                              : null,
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -1158,19 +1169,19 @@ class _EmployeePageState extends State<EmployeePage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              e['name'], 
+                              e['name'] ?? '', 
                               style: const TextStyle(fontWeight: FontWeight.w600)
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              e['position'],
+                              e['position'] ?? '',
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 12,
                               ),
                             ),
                             Text(
-                              e['employeeId'],
+                              e['customEmployeeId'] ?? e['documentId'] ?? '',
                               style: TextStyle(
                                 color: Colors.grey.shade500,
                                 fontSize: 11,
@@ -1181,7 +1192,7 @@ class _EmployeePageState extends State<EmployeePage> {
                       ],
                     )
                   ),
-                  DataCell(Text(e['department'])),
+                  DataCell(Text(e['department'] ?? '')),
                   DataCell(
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1190,7 +1201,7 @@ class _EmployeePageState extends State<EmployeePage> {
                         borderRadius: BorderRadius.circular(8)
                       ),
                       child: Text(
-                        e['status'],
+                        e['status'] ?? 'Present',
                         style: TextStyle(
                           color: statusColor, 
                           fontWeight: FontWeight.w600,
@@ -1199,7 +1210,7 @@ class _EmployeePageState extends State<EmployeePage> {
                       ),
                     )
                   ),
-                  DataCell(Text(e['contact'])),
+                  DataCell(Text(e['contact'] ?? '')),
                   DataCell(
                     Row(
                       children: [
@@ -1231,7 +1242,7 @@ class _EmployeePageState extends State<EmployeePage> {
 
     return Column(
       children: filteredEmployees.map((employee) {
-        final statusColor = _getStatusColor(employee['status']);
+        final statusColor = _getStatusColor(employee['status'] ?? 'Present');
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 0,
@@ -1244,8 +1255,13 @@ class _EmployeePageState extends State<EmployeePage> {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: NetworkImage(employee['avatar']),
+                      backgroundImage: (employee['avatar'] != null && employee['avatar'].toString().isNotEmpty) 
+                          ? NetworkImage(employee['avatar'].toString()) 
+                          : null,
                       radius: 24,
+                      child: (employee['avatar'] == null || employee['avatar'].toString().isEmpty)
+                          ? Icon(Icons.person, color: Colors.grey.shade400)
+                          : null,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1253,21 +1269,21 @@ class _EmployeePageState extends State<EmployeePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            employee['name'],
+                            employee['name'] ?? '',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
                           ),
                           Text(
-                            employee['position'],
+                            employee['position'] ?? '',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 14,
                             ),
                           ),
                           Text(
-                            employee['employeeId'],
+                            employee['customEmployeeId'] ?? employee['documentId'] ?? '',
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
@@ -1283,7 +1299,7 @@ class _EmployeePageState extends State<EmployeePage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        employee['status'],
+                        employee['status'] ?? 'Present',
                         style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.w600,
@@ -1438,7 +1454,7 @@ class _EmployeePageState extends State<EmployeePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Employee'),
-        content: Text('Are you sure you want to delete ${employee['name']}?'),
+        content: Text('Are you sure you want to delete ${employee['name'] ?? 'this employee'}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

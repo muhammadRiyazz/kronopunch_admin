@@ -52,9 +52,9 @@ class CacheService {
       await _prefs!.setString(_loginTimeKey, DateTime.now().toIso8601String());
       
       debugPrint('✅ Login data saved successfully:');
+      debugPrint('   - Company: $companyCode');
       debugPrint('   - Name: $name');
       debugPrint('   - Email: $email');
-      debugPrint('   - Company: $companyCode');
       debugPrint('   - Role: $role');
     } catch (e) {
       debugPrint('❌ Error saving to cache: $e');
@@ -80,9 +80,9 @@ class CacheService {
       };
       
       debugPrint('📥 Retrieved cache data:');
+      debugPrint('   - Company: ${data['companyCode']}');
       debugPrint('   - Name: ${data['name']}');
       debugPrint('   - Email: ${data['email']}');
-      debugPrint('   - Company: ${data['companyCode']}');
       debugPrint('   - Role: ${data['role']}');
       debugPrint('   - IsLoggedIn: ${data['isLoggedIn']}');
       
@@ -101,7 +101,9 @@ class CacheService {
     }
 
     try {
-      return _prefs!.getBool(_isLoggedInKey) ?? false;
+      final isLoggedIn = _prefs!.getBool(_isLoggedInKey) ?? false;
+      debugPrint('🔐 Login status from cache: $isLoggedIn');
+      return isLoggedIn;
     } catch (e) {
       debugPrint('❌ Error checking login status: $e');
       return false;
@@ -132,11 +134,23 @@ class CacheService {
 
   static Future<String?> getCompanyCode() async {
     final data = await getLoginData();
-    return data['companyCode'];
+    final companyCode = data['companyCode'];
+    debugPrint('🏢 Getting company code from cache: $companyCode');
+    return companyCode;
   }
 
   static Future<String?> getUserRole() async {
     final data = await getLoginData();
     return data['role'];
+  }
+
+  static Future<String?> getUserName() async {
+    final data = await getLoginData();
+    return data['name'];
+  }
+
+  static Future<String?> getUserEmail() async {
+    final data = await getLoginData();
+    return data['email'];
   }
 }

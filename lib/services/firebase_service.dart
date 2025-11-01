@@ -59,6 +59,7 @@ class FirebaseService {
         'companyCode': nextCompanyCode,
         'createdAt': company.createdAt,
         'uid': uid,
+        'users': [uid], // Add uid to users array for easy querying
       });
 
       debugPrint('✅ Company document created: $nextCompanyCode');
@@ -92,77 +93,77 @@ class FirebaseService {
     }
   }
 
-// services/firebase_service.dart - Update loginCompany method
-static Future<Company?> loginCompany({
-  required String email,
-  required String password,
-}) async {
-  try {
-    debugPrint('🔄 Starting login for: $email');
-    
-    // 1️⃣ Firebase Auth sign in
-    UserCredential userCred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+  // 🔹 Login company
+  static Future<Company?> loginCompany({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      debugPrint('🔄 Starting login for: $email');
+      
+      // 1️⃣ Firebase Auth sign in
+      UserCredential userCred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    final uid = userCred.user!.uid;
-    debugPrint('✅ Firebase Auth sign in successful: $uid');
+      final uid = userCred.user!.uid;
+      debugPrint('✅ Firebase Auth sign in successful: $uid');
 
-    // 2️⃣ Fetch company where uid == this user's uid
-    final snapshot = await _firestore
-        .collection('companies')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
+      // 2️⃣ Fetch company where uid == this user's uid
+      final snapshot = await _firestore
+          .collection('companies')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
 
-    if (snapshot.docs.isEmpty) {
-      debugPrint('❌ No company found for user: $uid');
-      return null;
+      if (snapshot.docs.isEmpty) {
+        debugPrint('❌ No company found for user: $uid');
+        return null;
+      }
+
+      // 3️⃣ Get user data from users subcollection
+      final companyDoc = snapshot.docs.first;
+      final companyCode = companyDoc.id;
+      debugPrint('🏢 Found company: $companyCode');
+      
+      final userSnapshot = await _firestore
+          .collection('companies')
+          .doc(companyCode)
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      String userName = 'Admin';
+      String userRole = 'admin';
+
+      if (userSnapshot.exists) {
+        final userData = userSnapshot.data()!;
+        userName = (userData['name'] as String?) ?? 'Admin';
+        userRole = (userData['role'] as String?) ?? 'admin';
+        debugPrint('✅ User data found: $userName ($userRole)');
+      } else {
+        debugPrint('⚠️ User subcollection not found, using defaults');
+      }
+
+      // 4️⃣ Save to cache
+      await CacheService.saveLoginData(
+        companyCode: companyCode,
+        email: email,
+        name: userName,
+        role: userRole,
+      );
+
+      debugPrint('✅ Login data saved to cache');
+
+      // 5️⃣ Return the first matching company
+      return Company.fromMap(companyDoc.data(), companyDoc.id);
+    } catch (e) {
+      debugPrint('❌ Login failed: $e');
+      rethrow;
     }
-
-    // 3️⃣ Get user data from users subcollection
-    final companyDoc = snapshot.docs.first;
-    final companyCode = companyDoc.id;
-    debugPrint('🏢 Found company: $companyCode');
-    
-    final userSnapshot = await _firestore
-        .collection('companies')
-        .doc(companyCode)
-        .collection('users')
-        .doc(uid)
-        .get();
-
-    String userName = 'Admin';
-    String userRole = 'admin';
-
-    if (userSnapshot.exists) {
-      final userData = userSnapshot.data()!;
-      // FIXED: Proper type casting
-      userName = (userData['name'] as String?) ?? 'Admin';
-      userRole = (userData['role'] as String?) ?? 'admin';
-      debugPrint('✅ User data found: $userName ($userRole)');
-    } else {
-      debugPrint('⚠️ User subcollection not found, using defaults');
-    }
-
-    // 4️⃣ Save to cache
-    await CacheService.saveLoginData(
-      companyCode: companyCode,
-      email: email,
-      name: userName,
-      role: userRole,
-    );
-
-    debugPrint('✅ Login data saved to cache');
-
-    // 5️⃣ Return the first matching company
-    return Company.fromMap(companyDoc.data(), companyDoc.id);
-  } catch (e) {
-    debugPrint('❌ Login failed: $e');
-    rethrow;
   }
-}
+
   static Future<bool> checkAnyCompanyExists() async {
     try {
       final snapshot = await _firestore.collection('companies').limit(1).get();
@@ -197,6 +198,58 @@ static Future<Company?> loginCompany({
       }
 
       final cachedData = await CacheService.getLoginData();
+      
+      // If cache is empty but user is logged in, rebuild cache
+      if (cachedData['companyCode'] == null || cachedData['companyCode']!.isEmpty) {
+        debugPrint('🔄 Cache empty, rebuilding...');
+        final companySnapshot = await _firestore
+            .collection('companies')
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+
+        if (companySnapshot.docs.isNotEmpty) {
+          final companyDoc = companySnapshot.docs.first;
+          final companyCode = companyDoc.id;
+          
+          final userSnapshot = await _firestore
+              .collection('companies')
+              .doc(companyCode)
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+          String userName = 'Admin';
+          String userRole = 'admin';
+
+          if (userSnapshot.exists) {
+            final userData = userSnapshot.data()!;
+            userName = (userData['name'] as String?) ?? 'Admin';
+            userRole = (userData['role'] as String?) ?? 'admin';
+          }
+
+          await CacheService.saveLoginData(
+            companyCode: companyCode,
+            email: user.email ?? '',
+            name: userName,
+            role: userRole,
+          );
+
+          final authState = {
+            'uid': user.uid,
+            'email': user.email,
+            'companyCode': companyCode,
+            'name': userName,
+            'role': userRole,
+            'isLoggedIn': true,
+          };
+          
+          debugPrint('🔐 Rebuilt auth state: ${authState['name']} (${authState['companyCode']})');
+          return authState;
+        }
+        return null;
+      }
+
       final authState = {
         'uid': user.uid,
         'email': user.email,
@@ -210,6 +263,20 @@ static Future<Company?> loginCompany({
       return authState;
     } catch (e) {
       debugPrint('❌ Error getting auth state: $e');
+      return null;
+    }
+  }
+
+  // 🔹 Get company by code
+  static Future<Company?> getCompanyByCode(String companyCode) async {
+    try {
+      final doc = await _firestore.collection('companies').doc(companyCode).get();
+      if (doc.exists) {
+        return Company.fromMap(doc.data()!, doc.id);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error getting company: $e');
       return null;
     }
   }

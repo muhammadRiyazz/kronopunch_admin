@@ -12,7 +12,7 @@ class RegisterCompanyPage extends StatefulWidget {
 }
 
 class _RegisterCompanyPageState extends State<RegisterCompanyPage> {
-  final _formKey = GlobalKey<FormState>();
+   final _formKey = GlobalKey<FormState>();
   final _companyName = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -50,6 +50,7 @@ class _RegisterCompanyPageState extends State<RegisterCompanyPage> {
         company: company,
       );
 
+      // Get the created company to pass to MainLayout
       final snapshot = await FirebaseFirestore.instance
           .collection('companies')
           .where('email', isEqualTo: _email.text.trim())
@@ -65,13 +66,16 @@ class _RegisterCompanyPageState extends State<RegisterCompanyPage> {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => MainLayout( company: savedCompany,)),
+          MaterialPageRoute(builder: (_) => MainLayout(company: savedCompany)),
         );
+      } else {
+        throw Exception('Company registration completed but company not found');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text('Registration failed: $e'),
           backgroundColor: Colors.red,
         ),
       );
