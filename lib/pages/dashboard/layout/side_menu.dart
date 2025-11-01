@@ -52,7 +52,7 @@ final  Company company;
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                            if (isExpanded) _buildUserInfoSection(),
+                            if (isExpanded) _buildUserInfoSection(company),
 
                   _buildMenuSection('MAIN', isExpanded),
                   const SizedBox(height: 8),
@@ -124,7 +124,13 @@ final  Company company;
     );
   }
 
-  Widget _buildUserInfoSection() {
+  Widget _buildUserInfoSection(
+
+
+                    Company company,
+
+  ) {
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
@@ -147,14 +153,12 @@ final  Company company;
                         color: Color(0xFF1A237E),
                         strokeWidth: 2,
                       )
-                    : Text(
-                        userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(
-                          color: Color(0xFF1A237E),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    :
+                      Icon(
+                  Icons.business_rounded,
+                        color: Color(0xFF1A237E),
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -162,7 +166,8 @@ final  Company company;
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      userData['name'] ?? 'Loading...',
+                      company.companyName,
+                      // userData['name'] ?? 'Loading...',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -173,7 +178,9 @@ final  Company company;
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      userData['role']?.toUpperCase() ?? 'USER',
+                                            company.district,
+
+                      // userData['role']?.toUpperCase() ?? 'USER',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 11,
@@ -196,18 +203,29 @@ final  Company company;
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.business_rounded,
-                  color: Colors.white.withOpacity(0.7),
-                  size: 16,
-                ),
+                // Icon(
+                //   Icons.business_rounded,
+                //   color: Colors.white.withOpacity(0.7),
+                //   size: 16,
+                // ),
+                 CircleAvatar(
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                   child: Text(
+                          userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                          style:  TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        userData['companyCode'] ?? 'Company',
+                        userData['name']??'',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,

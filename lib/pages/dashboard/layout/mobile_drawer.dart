@@ -30,16 +30,17 @@ final  Company company;
         children: [
           // Logo Section
           _buildLogoSection(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 5),
 
           // User Info Section
-          _buildUserInfoSection(),
 
           // Menu Items
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
+                            _buildUserInfoSection(company),
+
                   _buildMenuSection('MAIN'),
                   const SizedBox(height: 8),
                   _buildMenuSection('MANAGEMENT'),
@@ -76,17 +77,17 @@ final  Company company;
             child: const Icon(
               Icons.schedule_rounded,
               color: Colors.white,
-              size: 26,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'KronoPunch',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
@@ -108,7 +109,9 @@ final  Company company;
     );
   }
 
-  Widget _buildUserInfoSection() {
+  Widget _buildUserInfoSection(Company company) {
+
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
@@ -124,21 +127,19 @@ final  Company company;
           Row(
             children: [
               CircleAvatar(
-                radius: 24,
+                radius: 20,
                 backgroundColor: Colors.white,
                 child: loading
                     ? const CircularProgressIndicator(
                         color: Color(0xFF1A237E),
                         strokeWidth: 2,
                       )
-                    : Text(
-                        userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(
-                          color: Color(0xFF1A237E),
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    :
+                      Icon(
+                  Icons.business_rounded,
+                        color: Color(0xFF1A237E),
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -146,21 +147,24 @@ final  Company company;
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      userData['name'] ?? 'Loading...',
+                      company.companyName,
+                      // userData['name'] ?? 'Loading...',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      userData['role']?.toUpperCase() ?? 'USER',
+                                            company.district,
+
+                      // userData['role']?.toUpperCase() ?? 'USER',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -173,28 +177,39 @@ final  Company company;
           
           // Company Info
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.business_rounded,
-                  color: Colors.white.withOpacity(0.7),
-                  size: 18,
-                ),
-                const SizedBox(width: 10),
+                // Icon(
+                //   Icons.business_rounded,
+                //   color: Colors.white.withOpacity(0.7),
+                //   size: 16,
+                // ),
+                 CircleAvatar(
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                   child: Text(
+                          userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                          style:  TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        userData['companyCode'] ?? 'Company',
+                        userData['name']??'',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -202,7 +217,7 @@ final  Company company;
                         userData['email'] ?? 'No email',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.6),
-                          fontSize: 12,
+                          fontSize: 10,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -329,7 +344,7 @@ final  Company company;
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
@@ -341,14 +356,14 @@ final  Company company;
                     Icon(
                       Icons.logout_rounded,
                       color: Colors.white.withOpacity(0.8),
-                      size: 20,
+                      size: 16,
                     ),
                     const SizedBox(width: 12),
                     const Text(
                       'Logout',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -358,54 +373,7 @@ final  Company company;
             ),
           ),
           
-          const SizedBox(height: 16),
-          
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.support_agent_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Need Help?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        'Contact support',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+       
           const SizedBox(height: 12),
           Row(
             children: [

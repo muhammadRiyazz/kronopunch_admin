@@ -1,4 +1,5 @@
 import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -21,34 +22,6 @@ class FirebaseEmployeeService {
 
     if (userDoc.docs.isEmpty) return null;
     return userDoc.docs.first.id;
-  }
-
-  // Generate custom employee ID (empl_001, empl_002, etc.)
-  static Future<String> _generateEmployeeId() async {
-    try {
-      final companyCode = await _getCompanyCode();
-      if (companyCode == null) throw Exception('Company not found');
-
-      final employeesSnapshot = await _firestore
-          .collection('companies')
-          .doc(companyCode)
-          .collection('employees')
-          .orderBy('employeeNumber', descending: true)
-          .limit(1)
-          .get();
-
-      int nextNumber = 1;
-      if (employeesSnapshot.docs.isNotEmpty) {
-        final lastEmployee = employeesSnapshot.docs.first.data();
-        final lastNumber = lastEmployee['employeeNumber'] ?? 0;
-        nextNumber = lastNumber + 1;
-      }
-
-      return 'empl_${nextNumber.toString().padLeft(3, '0')}';
-    } catch (e) {
-      log('Error generating employee ID: $e');
-      rethrow;
-    }
   }
 
   // Load all employees
@@ -77,11 +50,8 @@ class FirebaseEmployeeService {
           'place': data['place'] ?? '',
           'gender': data['gender'] ?? 'Male',
           'employeeId': data['employeeId'] ?? '',
-          'employeeNumber': data['employeeNumber'] ?? 0,
           'role': data['role'] ?? 'Employee',
-          'password': data['password'] ?? '',
           'avatar': data['avatar'] ?? 'https://i.pravatar.cc/150?img=1',
-          'status': data['status'] ?? 'Present',
           'createdAt': data['createdAt'],
         };
       }).toList();
@@ -97,22 +67,11 @@ class FirebaseEmployeeService {
       final companyCode = await _getCompanyCode();
       if (companyCode == null) throw Exception('Company not found');
 
-      // Generate custom employee ID
-      final employeeId = await _generateEmployeeId();
-      final employeeNumber = int.parse(employeeId.split('_')[1]);
-
-      final employeeDataWithId = {
-        ...employeeData,
-        'employeeId': employeeId,
-        'employeeNumber': employeeNumber,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-
       await _firestore
           .collection('companies')
           .doc(companyCode)
           .collection('employees')
-          .add(employeeDataWithId);
+          .add(employeeData);
     } catch (e) {
       log('Error adding employee: $e');
       rethrow;
@@ -130,10 +89,7 @@ class FirebaseEmployeeService {
           .doc(companyCode)
           .collection('employees')
           .doc(employeeId)
-          .update({
-            ...employeeData,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          .update(employeeData);
     } catch (e) {
       log('Error updating employee: $e');
       rethrow;
