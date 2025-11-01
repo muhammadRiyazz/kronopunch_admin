@@ -31,7 +31,7 @@ Future<void> _login() async {
       // Cache is already saved in FirebaseService.loginCompany
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => MainLayout()),
+        MaterialPageRoute(builder: (_) => MainLayout( company: company,)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

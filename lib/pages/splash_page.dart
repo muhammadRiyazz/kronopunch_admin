@@ -1,10 +1,11 @@
 // lib/pages/splash_page.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kronopunch/models/company_model.dart';
 import 'package:kronopunch/pages/auth/auth_home.dart';
 import 'package:kronopunch/pages/dashboard/layout/main_layout.dart';
-import 'package:kronopunch/services/cache_service.dart';
-import 'package:kronopunch/services/login_cache.dart';
-import '../services/firebase_service.dart';
+import 'package:kronopunch/services/firebase_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -18,12 +19,13 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  String _status = 'Initializing...';
 
   @override
   void initState() {
     super.initState();
     _initAnimations();
-    _init();
+    _initializeApp();
   }
 
   void _initAnimations() {
@@ -59,27 +61,98 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     _controller.forward();
   }
 
-  Future<void> _init() async {
-    // Check if user is already logged in (cache + Firebase auth)
-    final authState = await FirebaseService.getCurrentAuthState();
-    final isCachedLoggedIn = await CacheService.isLoggedIn();
+  Future<Company?> _getCompanyData(String uid) async {
+    try {
+      debugPrint('🔄 Splash: Fetching company data for user: $uid');
+      
+      // Fetch company where uid matches the current user
+      final snapshot = await FirebaseFirestore.instance
+          .collection('companies')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
 
-    await Future.delayed(const Duration(seconds: 3));
+      if (snapshot.docs.isNotEmpty) {
+        final companyDoc = snapshot.docs.first;
+        final company = Company.fromMap(companyDoc.data(), companyDoc.id);
+        debugPrint('✅ Splash: Company data found: ${company.companyName}');
+        return company;
+      } else {
+        debugPrint('❌ Splash: No company found for user: $uid');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Splash: Error fetching company data: $e');
+      return null;
+    }
+  }
 
-    if (!mounted) return;
+  Future<void> _initializeApp() async {
+    try {
+      setState(() => _status = 'Checking authentication...');
+      debugPrint('🔄 Splash: Checking authentication status');
+      
+      // Check if user is logged in with Firebase Auth
+      final user = FirebaseAuth.instance.currentUser;
+      
+      await Future.delayed(const Duration(milliseconds: 1000));
 
-    if (authState != null && isCachedLoggedIn) {
-      // User is logged in, go to dashboard
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => MainLayout()),
-      );
-    } else {
-      // User is not logged in, go to auth home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => AuthHomePage()),
-      );
+      if (!mounted) return;
+
+      if (user != null) {
+        debugPrint('✅ Splash: User is logged in, fetching company data...');
+        setState(() => _status = 'Loading company data...');
+        
+        // Fetch company data for the logged-in user
+        final company = await _getCompanyData(user.uid);
+        
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (!mounted) return;
+
+        if (company != null) {
+          debugPrint('✅ Splash: Company data loaded, redirecting to dashboard');
+          setState(() => _status = 'Welcome back!');
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => MainLayout(company: company)),
+          );
+        } else {
+          debugPrint('⚠️ Splash: User logged in but no company data found, redirecting to auth');
+          setState(() => _status = 'Session expired...');
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // Sign out and redirect to auth if company data is missing
+          await FirebaseAuth.instance.signOut();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AuthHomePage()),
+          );
+        }
+      } else {
+        debugPrint('🔐 Splash: No user logged in, redirecting to auth');
+        setState(() => _status = 'Redirecting to login...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthHomePage()),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Splash: Error during initialization: $e');
+      // If anything fails, go to auth page
+      if (mounted) {
+        setState(() => _status = 'Starting fresh...');
+        await Future.delayed(const Duration(milliseconds: 1000));
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthHomePage()),
+        );
+      }
     }
   }
 
@@ -237,16 +310,28 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                   
                   const SizedBox(height: 20),
                   
-                  // Loading Text
+                  // Loading Text with current status
                   FadeTransition(
                     opacity: _fadeAnimation,
-                    child: const Text(
-                      'Loading...',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white60,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Column(
+                      children: [
+                        Text(
+                          _status,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white60,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Loading...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

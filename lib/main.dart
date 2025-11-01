@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:kronopunch/pages/auth/auth_home.dart';
+import 'package:kronopunch/pages/dashboard/layout/main_layout.dart';
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'pages/splash_page.dart';
@@ -23,6 +25,15 @@ class KronoPunchApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
 themeMode: ThemeMode.light,
       home: const SplashPage(),
+      // routes: {
+      //   '/auth': (context) => const AuthHomePage(),
+      //   '/dashboard': (context) => const MainLayout(),
+      // },
+      onGenerateRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) => const SplashPage(),
+        );
+      },
       debugShowCheckedModeBanner: false,
     );
   }

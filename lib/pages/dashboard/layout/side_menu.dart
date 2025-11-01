@@ -1,5 +1,6 @@
 // lib/pages/dashboard/layout/side_menu.dart
 import 'package:flutter/material.dart';
+import 'package:kronopunch/models/company_model.dart';
 
 class SideMenu extends StatelessWidget {
   final int selectedIndex;
@@ -8,9 +9,12 @@ class SideMenu extends StatelessWidget {
   final Map<String, String?> userData;
   final VoidCallback onLogout;
   final bool loading;
+final  Company company;
 
   const SideMenu({
+    
     super.key,
+    required this.company,
     required this.selectedIndex,
     required this.onItemSelected,
     this.isExpanded = true,
@@ -42,13 +46,14 @@ class SideMenu extends StatelessWidget {
           const SizedBox(height: 12),
 
           // User Info Section (only when expanded)
-          if (isExpanded) _buildUserInfoSection(),
 
           // Menu Items
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
+                            if (isExpanded) _buildUserInfoSection(),
+
                   _buildMenuSection('MAIN', isExpanded),
                   const SizedBox(height: 8),
                   _buildMenuSection('MANAGEMENT', isExpanded),
@@ -379,55 +384,55 @@ class SideMenu extends StatelessWidget {
           
           const SizedBox(height: 12),
           
-          if (isExpanded) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.support_agent_rounded,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Need Help?',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          'Contact support',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
+          // if (isExpanded) ...[
+          //   Container(
+          //     padding: const EdgeInsets.all(12),
+          //     decoration: BoxDecoration(
+          //       color: Colors.white.withOpacity(0.06),
+          //       borderRadius: BorderRadius.circular(12),
+          //     ),
+          //     child: Row(
+          //       children: [
+          //         Container(
+          //           padding: const EdgeInsets.all(6),
+          //           decoration: BoxDecoration(
+          //             color: Colors.green,
+          //             borderRadius: BorderRadius.circular(8),
+          //           ),
+          //           child: const Icon(
+          //             Icons.support_agent_rounded,
+          //             color: Colors.white,
+          //             size: 16,
+          //           ),
+          //         ),
+          //         const SizedBox(width: 8),
+          //         const Expanded(
+          //           child: Column(
+          //             crossAxisAlignment: CrossAxisAlignment.start,
+          //             children: [
+          //               Text(
+          //                 'Need Help?',
+          //                 style: TextStyle(
+          //                   color: Colors.white,
+          //                   fontSize: 12,
+          //                   fontWeight: FontWeight.w600,
+          //                 ),
+          //               ),
+          //               Text(
+          //                 'Contact support',
+          //                 style: TextStyle(
+          //                   color: Colors.white70,
+          //                   fontSize: 10,
+          //                 ),
+          //               ),
+          //             ],
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          //   const SizedBox(height: 12),
+         // ],
           
           Row(
             mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,

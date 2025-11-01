@@ -1,6 +1,6 @@
+// services/cache_service.dart
 import 'package:flutter/foundation.dart';
-import 'cache_service_mobile.dart'
-    if (dart.library.html) 'cache_service_web.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CacheService {
   static final CacheService _instance = CacheService._internal();
@@ -14,70 +14,129 @@ class CacheService {
   static const String _isLoggedInKey = 'is_logged_in';
   static const String _loginTimeKey = 'login_time';
 
+  static SharedPreferences? _prefs;
+  static bool _initialized = false;
+
+  static Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      _initialized = true;
+      debugPrint('✅ CacheService initialized successfully');
+    } catch (e) {
+      debugPrint('❌ CacheService initialization failed: $e');
+      _initialized = false;
+    }
+  }
+
   static Future<void> saveLoginData({
     required String companyCode,
     required String email,
     required String name,
     required String role,
   }) async {
+    await _ensureInitialized();
+    
+    if (!_initialized || _prefs == null) {
+      debugPrint('❌ Cache not available - skipping save');
+      return;
+    }
+
     try {
-      await CachePlatform.saveData({
-        _companyCodeKey: companyCode,
-        _userEmailKey: email,
-        _userNameKey: name,
-        _userRoleKey: role,
-        _isLoggedInKey: 'true',
-        _loginTimeKey: DateTime.now().toIso8601String(),
-      });
+      await _prefs!.setString(_companyCodeKey, companyCode);
+      await _prefs!.setString(_userEmailKey, email);
+      await _prefs!.setString(_userNameKey, name);
+      await _prefs!.setString(_userRoleKey, role);
+      await _prefs!.setBool(_isLoggedInKey, true);
+      await _prefs!.setString(_loginTimeKey, DateTime.now().toIso8601String());
+      
+      debugPrint('✅ Login data saved successfully:');
+      debugPrint('   - Name: $name');
+      debugPrint('   - Email: $email');
+      debugPrint('   - Company: $companyCode');
+      debugPrint('   - Role: $role');
     } catch (e) {
-      if (kDebugMode) print('Save login data error: $e');
+      debugPrint('❌ Error saving to cache: $e');
     }
   }
 
   static Future<Map<String, String?>> getLoginData() async {
+    await _ensureInitialized();
+    
+    if (!_initialized || _prefs == null) {
+      debugPrint('❌ Cache not available - returning empty data');
+      return {};
+    }
+
     try {
-      final data = await CachePlatform.getData([
-        _companyCodeKey,
-        _userEmailKey,
-        _userNameKey,
-        _userRoleKey,
-        _isLoggedInKey,
-        _loginTimeKey,
-      ]);
+      final data = {
+        'companyCode': _prefs!.getString(_companyCodeKey),
+        'email': _prefs!.getString(_userEmailKey),
+        'name': _prefs!.getString(_userNameKey),
+        'role': _prefs!.getString(_userRoleKey),
+        'isLoggedIn': _prefs!.getBool(_isLoggedInKey)?.toString(),
+        'loginTime': _prefs!.getString(_loginTimeKey),
+      };
+      
+      debugPrint('📥 Retrieved cache data:');
+      debugPrint('   - Name: ${data['name']}');
+      debugPrint('   - Email: ${data['email']}');
+      debugPrint('   - Company: ${data['companyCode']}');
+      debugPrint('   - Role: ${data['role']}');
+      debugPrint('   - IsLoggedIn: ${data['isLoggedIn']}');
+      
       return data;
     } catch (e) {
-      if (kDebugMode) print('Get login data error: $e');
+      debugPrint('❌ Error reading from cache: $e');
       return {};
     }
   }
 
   static Future<bool> isLoggedIn() async {
-    final data = await getLoginData();
-    return data[_isLoggedInKey] == 'true';
+    await _ensureInitialized();
+    
+    if (!_initialized || _prefs == null) {
+      return false;
+    }
+
+    try {
+      return _prefs!.getBool(_isLoggedInKey) ?? false;
+    } catch (e) {
+      debugPrint('❌ Error checking login status: $e');
+      return false;
+    }
   }
 
   static Future<void> clearLoginData() async {
+    await _ensureInitialized();
+    
+    if (!_initialized || _prefs == null) {
+      debugPrint('❌ Cache not available - skipping clear');
+      return;
+    }
+
     try {
-      await CachePlatform.clearData([
-        _companyCodeKey,
-        _userEmailKey,
-        _userNameKey,
-        _userRoleKey,
-        _isLoggedInKey,
-        _loginTimeKey,
-      ]);
+      await _prefs!.remove(_companyCodeKey);
+      await _prefs!.remove(_userEmailKey);
+      await _prefs!.remove(_userNameKey);
+      await _prefs!.remove(_userRoleKey);
+      await _prefs!.remove(_isLoggedInKey);
+      await _prefs!.remove(_loginTimeKey);
+      
+      debugPrint('✅ Login data cleared from cache');
     } catch (e) {
-      if (kDebugMode) print('Clear login data error: $e');
+      debugPrint('❌ Error clearing cache: $e');
     }
   }
 
   static Future<String?> getCompanyCode() async {
     final data = await getLoginData();
-    return data[_companyCodeKey];
+    return data['companyCode'];
   }
 
   static Future<String?> getUserRole() async {
     final data = await getLoginData();
-    return data[_userRoleKey];
+    return data['role'];
   }
 }

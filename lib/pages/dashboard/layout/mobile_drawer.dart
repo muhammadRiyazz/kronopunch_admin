@@ -1,5 +1,6 @@
 // lib/pages/dashboard/layout/mobile_drawer.dart
 import 'package:flutter/material.dart';
+import 'package:kronopunch/models/company_model.dart';
 
 class MobileDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -7,9 +8,11 @@ class MobileDrawer extends StatelessWidget {
   final Map<String, String?> userData;
   final VoidCallback onLogout;
   final bool loading;
+final  Company company;
 
   const MobileDrawer({
     super.key,
+    required this.company,
     required this.selectedIndex,
     required this.onItemSelected,
     required this.userData,

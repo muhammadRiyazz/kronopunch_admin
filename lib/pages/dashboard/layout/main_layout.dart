@@ -1,6 +1,8 @@
 // lib/pages/dashboard/layout/main_layout.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kronopunch/models/company_model.dart';
 import 'package:kronopunch/pages/dashboard/layout/side_menu.dart';
 import 'package:kronopunch/pages/dashboard/layout/mobile_drawer.dart';
 import 'package:kronopunch/pages/dashboard/sections/attendance_page.dart';
@@ -12,9 +14,12 @@ import 'package:kronopunch/pages/dashboard/sections/report_page.dart';
 import 'package:kronopunch/pages/dashboard/sections/settings_page.dart';
 import 'package:kronopunch/services/firebase_service.dart';
 import 'package:kronopunch/services/cache_service.dart';
+import 'package:kronopunch/pages/auth/auth_home.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+
+final  Company company;
+  const MainLayout({super.key,required this.company});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -74,26 +79,110 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Future<void> _loadUserData() async {
+    debugPrint('🔄 Loading user data for MainLayout...');
     try {
-      final data = await CacheService.getLoginData();
-      final user = FirebaseAuth.instance.currentUser;
+      // Try to get data from cache first
+      final cachedData = await CacheService.getLoginData();
       
-      setState(() {
-        _userData = data;
-        // If cache is empty but user is logged in, use Firebase data
-        if (_userData.isEmpty && user != null) {
-          _userData = {
-            'email': user.email,
-            'name': user.displayName ?? user.email?.split('@').first ?? 'User',
-            'companyCode': 'Company',
-            'role': 'Admin',
-          };
+      if (cachedData.isNotEmpty && cachedData['name'] != null) {
+        debugPrint('✅ Using cached user data');
+        setState(() {
+          _userData = cachedData;
+          _loadingUserData = false;
+        });
+        return;
+      }
+
+      // If cache is empty, try to get from Firebase Auth and Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        debugPrint('🔄 Cache empty, fetching from Firestore...');
+        
+        // Try to fetch user data from Firestore
+        try {
+          final companySnapshot = await FirebaseFirestore.instance
+              .collection('companies')
+              .where('uid', isEqualTo: user.uid)
+              .limit(1)
+              .get();
+
+          if (companySnapshot.docs.isNotEmpty) {
+            final companyDoc = companySnapshot.docs.first;
+            final userSnapshot = await FirebaseFirestore.instance
+                .collection('companies')
+                .doc(companyDoc.id)
+                .collection('users')
+                .doc(user.uid)
+                .get();
+
+            if (userSnapshot.exists) {
+              final userData = userSnapshot.data()!;
+              
+              // FIXED: Proper type casting from Map<String, dynamic> to Map<String, String?>
+              final Map<String, String?> userInfo = {
+                'name': (userData['name'] as String?) ?? user.displayName ?? user.email?.split('@').first ?? 'User',
+                'email': (userData['email'] as String?) ?? user.email ?? 'No email',
+                'companyCode': companyDoc.id,
+                'role': (userData['role'] as String?) ?? 'admin',
+              };
+              
+              setState(() {
+                _userData = userInfo;
+                _loadingUserData = false;
+              });
+              
+              // Save to cache for next time
+              await CacheService.saveLoginData(
+                companyCode: companyDoc.id,
+                email: userInfo['email']!,
+                name: userInfo['name']!,
+                role: userInfo['role']!,
+              );
+              debugPrint('✅ User data loaded from Firestore and cached');
+              return;
+            }
+          }
+        } catch (e) {
+          debugPrint('❌ Error fetching from Firestore: $e');
         }
-        _loadingUserData = false;
-      });
+
+        // Fallback to basic Firebase Auth data
+        debugPrint('⚠️ Using basic Firebase Auth data');
+        final Map<String, String?> basicUserInfo = {
+          'name': user.displayName ?? user.email?.split('@').first ?? 'User',
+          'email': user.email ?? 'No email',
+          'companyCode': 'Company',
+          'role': 'Admin',
+        };
+        
+        setState(() {
+          _userData = basicUserInfo;
+          _loadingUserData = false;
+        });
+        
+        // Save basic data to cache
+        await CacheService.saveLoginData(
+          companyCode: 'Company',
+          email: basicUserInfo['email']!,
+          name: basicUserInfo['name']!,
+          role: basicUserInfo['role']!,
+        );
+      } else {
+        debugPrint('❌ No user logged in');
+        setState(() {
+          _loadingUserData = false;
+        });
+      }
     } catch (e) {
+      debugPrint('❌ Error loading user data: $e');
       setState(() {
         _loadingUserData = false;
+        _userData = {
+          'name': 'Error Loading',
+          'email': 'Unknown',
+          'companyCode': 'Unknown',
+          'role': 'User',
+        };
       });
     }
   }
@@ -127,6 +216,7 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Future<void> _logout() async {
+    debugPrint('🔄 Initiate logout process');
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -135,19 +225,26 @@ class _MainLayoutState extends State<MainLayout> {
           content: const Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                debugPrint('❌ Logout cancelled');
+                Navigator.of(context).pop();
+              },
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
+                debugPrint('✅ Logout confirmed');
                 Navigator.of(context).pop();
                 await FirebaseService.logout();
                 if (!mounted) return;
-                Navigator.pushNamedAndRemoveUntil(
-                  context, 
-                  '/auth', 
-                  (route) => false
+                
+                // Navigate to auth page using MaterialPageRoute
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthHomePage()),
+                  (route) => false,
                 );
+                debugPrint('🔀 Navigated to auth page');
               },
               child: const Text(
                 'Logout',
@@ -169,7 +266,7 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
-      drawer: isMobile ? MobileDrawer(
+      drawer: isMobile ? MobileDrawer(company:widget.company ,
         selectedIndex: _selectedIndex,
         onItemSelected: _onMenuSelect,
         userData: _userData,
@@ -182,6 +279,7 @@ class _MainLayoutState extends State<MainLayout> {
             // Side Menu (persistent on desktop & tablet; disabled on mobile)
             if (!isMobile && !isTablet) 
               SideMenu(
+                company: widget.company,
                 selectedIndex: _selectedIndex,
                 onItemSelected: _onMenuSelect,
                 isExpanded: true,
@@ -193,6 +291,7 @@ class _MainLayoutState extends State<MainLayout> {
             // Tablet sidebar (togglable)
             if (isTablet)
               SideMenu(
+                company: widget.company,
                 selectedIndex: _selectedIndex,
                 onItemSelected: _onMenuSelect,
                 isExpanded: false,
@@ -385,7 +484,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   Widget _buildUserProfile({bool isMobile = false}) {
     return GestureDetector(
-      onTap: _logout,
+      // onTap: _logout,
       child: Row(
         children: [
           CircleAvatar(
@@ -405,36 +504,36 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
           ),
-          if (!isMobile) ...[
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _userData['name'] ?? 'Loading...',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A237E),
-                  ),
-                ),
-                Text(
-                  _userData['role']?.toUpperCase() ?? 'USER',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.logout_rounded,
-              color: Colors.grey,
-              size: 18,
-            ),
-          ],
+          // if (!isMobile) ...[
+          //   const SizedBox(width: 12),
+          //   Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Text(
+          //         _userData['name'] ?? 'Loading...',
+          //         style: const TextStyle(
+          //           fontSize: 14,
+          //           fontWeight: FontWeight.w600,
+          //           color: Color(0xFF1A237E),
+          //         ),
+          //       ),
+          //       Text(
+          //         _userData['role']?.toUpperCase() ?? 'USER',
+          //         style: TextStyle(
+          //           fontSize: 11,
+          //           color: Colors.grey.shade600,
+          //           fontWeight: FontWeight.w500,
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          //   const SizedBox(width: 8),
+          //   const Icon(
+          //     Icons.logout_rounded,
+          //     color: Colors.grey,
+          //     size: 18,
+          //   ),
+          // ],
         ],
       ),
     );

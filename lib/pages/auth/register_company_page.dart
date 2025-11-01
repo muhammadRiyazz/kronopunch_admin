@@ -65,7 +65,7 @@ class _RegisterCompanyPageState extends State<RegisterCompanyPage> {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => MainLayout()),
+          MaterialPageRoute(builder: (_) => MainLayout( company: savedCompany,)),
         );
       }
     } catch (e) {
